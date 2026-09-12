@@ -24,7 +24,7 @@ export const sourceCatalog: readonly HistoricalSource[] = [
     url: "https://whc.unesco.org/en/list/86/",
     sourceType: "unesco",
     confidence: "high",
-    note: "用于核验吉萨金字塔群在孟菲斯墓地体系中的年代、范围与遗产价值。",
+    note: "支持吉萨金字塔、周围墓葬与孟菲斯墓地体系的关系；胡夫陵墓细节和1798年调查另见事件级官方来源。",
   },
   {
     placeId: "stonehenge",
@@ -60,7 +60,7 @@ export const sourceCatalog: readonly HistoricalSource[] = [
     url: "https://whc.unesco.org/en/list/829/",
     sourceType: "unesco",
     confidence: "high",
-    note: "用于核验公元79年火山灾害、发掘范围和罗马城市生活证据。",
+    note: "支持公元79年火山掩埋、商铺、住宅与墙上涂写等生活证据；1748年发掘节点另附考古公园官方介绍。",
   },
   {
     placeId: "petra",
@@ -105,7 +105,7 @@ export const sourceCatalog: readonly HistoricalSource[] = [
     url: "https://whc.unesco.org/en/list/440/",
     sourceType: "unesco",
     confidence: "high",
-    note: "用于核验莫高窟营建年代、洞窟规模及丝绸之路文化交流背景。",
+    note: "支持四至十四世纪佛教艺术、壁画中的商旅农耕场景与多语种写本；藏经洞发现经过另附英国图书馆专题。",
   },
   {
     placeId: "angkor-wat",
@@ -123,7 +123,7 @@ export const sourceCatalog: readonly HistoricalSource[] = [
     url: "https://whc.unesco.org/en/list/252/",
     sourceType: "unesco",
     confidence: "high",
-    note: "用于核验泰姬陵的营建年代、建筑构成和莫卧儿王朝背景。",
+    note: "依据 Outstanding Universal Value 核验1632年开工、1648年主体完成、1653年附属工程完成，避免把三个节点混为一谈。",
   },
   {
     placeId: "notre-dame-paris",
@@ -150,7 +150,7 @@ export const sourceCatalog: readonly HistoricalSource[] = [
     url: "https://whc.unesco.org/en/list/274/",
     sourceType: "unesco",
     confidence: "high",
-    note: "用于核验马丘比丘的印加建筑、山地环境及文化与自然双重价值。",
+    note: "支持十五世纪营建及农业区、居住区与梯田的空间关系；1450年为近似节点，1911年当地居民协助考察的记载另见秘鲁官方规划。",
   },
   {
     placeId: "chichen-itza",

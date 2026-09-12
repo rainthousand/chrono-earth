@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, type CSSProperties } from "react";
+import { useRef } from "react";
 
 import type { HistoricalVoice } from "../data/historicalVoices";
 import { useModalFocus } from "../hooks/useModalFocus";
+import "./VoiceImmersion.typography.css";
 
 interface VoiceImmersionProps {
   voice: HistoricalVoice;
@@ -33,20 +34,24 @@ function formatVoiceYear(year: number) {
   return year < 0 ? `公元前 ${Math.abs(year)} 年` : `公元 ${year} 年`;
 }
 
-function segmentVoiceText(text: string) {
-  const tokens = /\s/.test(text) ? text.trim().split(/\s+/) : Array.from(text);
-  let characterIndex = 0;
-
-  return tokens.map((token) => {
-    const characters = Array.from(token).map((character) => ({
-      character,
-      index: characterIndex++,
-    }));
-
-    characterIndex += 1;
-    return characters;
-  });
-}
+const voiceLanguageTags: Record<string, string> = {
+  古汉语: "zh-Hant",
+  古希腊语: "grc",
+  英语公版译文: "en",
+  拉丁语: "la",
+  意大利语: "it",
+  日语: "ja",
+  英语: "en",
+  古英语: "ang",
+  西班牙语: "es",
+  波斯语: "fa",
+  阿拉伯语: "ar",
+  希伯来语: "he",
+  巴利语: "pi-Latn",
+  梵语: "sa",
+  "英语（作者自译）": "en",
+  古典日语: "ja",
+};
 
 export default function VoiceImmersion({
   voice,
@@ -68,7 +73,7 @@ export default function VoiceImmersion({
 }: VoiceImmersionProps) {
   const dialogRef = useRef<HTMLElement>(null);
   useModalFocus(dialogRef, onClose);
-  const voiceSegments = segmentVoiceText(voice.text);
+  const languageTag = voiceLanguageTags[voice.language];
 
   return (
     <section
@@ -123,20 +128,13 @@ export default function VoiceImmersion({
           </div>
         )}
         <p className="voice-immersion__eyebrow">A LINE THAT OUTLIVED ITS WORLD</p>
-        <h2 id="voice-immersion-title" aria-label={voice.text}>
-          {voiceSegments.map((characters, segmentIndex) => (
-            <span className="voice-immersion__word" key={`${voice.id}:word:${segmentIndex}`} aria-hidden="true">
-              {characters.map(({ character, index }) => (
-                <span
-                  className="voice-immersion__character"
-                  key={`${voice.id}:${index}`}
-                  style={{ "--voice-character": index } as CSSProperties}
-                >
-                  {character}
-                </span>
-              ))}
-            </span>
-          ))}
+        <h2
+          id="voice-immersion-title"
+          className="voice-immersion__quote"
+          lang={languageTag}
+          dir="auto"
+        >
+          {voice.text}
         </h2>
         <p className="voice-immersion__translation">{voice.translation}</p>
         <p className="voice-immersion__narration">{voice.narration}</p>

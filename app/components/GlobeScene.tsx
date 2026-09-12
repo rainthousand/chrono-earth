@@ -50,6 +50,7 @@ export interface GlobeSceneProps {
   openingPhase?: "boot" | "focus" | "depart" | "done";
   performanceMode?: PerformanceMode;
   enabled?: boolean;
+  onLoadStateChange?: (state: "loading" | "ready" | "error") => void;
   onSelect: (id: string) => void;
   onPerformanceTierChange?: (tier: PerformanceTier) => void;
   onCameraSettled?: (view: GlobeCameraView) => void;
@@ -1343,6 +1344,7 @@ export function GlobeScene({
   openingPhase = "done",
   performanceMode = "auto",
   enabled = true,
+  onLoadStateChange,
   onSelect,
   onPerformanceTierChange,
   onCameraSettled,
@@ -1353,6 +1355,7 @@ export function GlobeScene({
   onPlaceHover,
 }: GlobeSceneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onLoadStateChangeRef = useRef(onLoadStateChange);
   const viewerRef = useRef<CesiumViewer | null>(null);
   const cesiumRef = useRef<CesiumModule | null>(null);
   const pointsRef = useRef<CesiumMarkerCollection | null>(null);
@@ -1387,6 +1390,7 @@ export function GlobeScene({
   const onPlaceHoverRef = useRef(onPlaceHover);
 
   useEffect(() => {
+    onLoadStateChangeRef.current = onLoadStateChange;
     placesRef.current = places;
     voicesRef.current = voices;
     yearRef.current = currentYear;
@@ -1406,6 +1410,7 @@ export function GlobeScene({
     onRouteSelectRef.current = onRouteSelect;
     onPlaceHoverRef.current = onPlaceHover;
   }, [
+    onLoadStateChange,
     places,
     voices,
     currentYear,
@@ -1432,6 +1437,23 @@ export function GlobeScene({
     }
 
     let cancelled = false;
+    let ready = false;
+    let removeReadyListener: (() => void) | undefined;
+    let removeErrorListener: (() => void) | undefined;
+    if (containerRef.current) delete containerRef.current.dataset.ready;
+    onLoadStateChangeRef.current?.("loading");
+    const failLoad = () => {
+      if (!cancelled) onLoadStateChangeRef.current?.("error");
+    };
+    let loadDeadline: number | undefined;
+    const watchVisibleLoad = () => {
+      window.clearTimeout(loadDeadline);
+      if (!ready && document.visibilityState === "visible") {
+        loadDeadline = window.setTimeout(failLoad, 45000);
+      }
+    };
+    watchVisibleLoad();
+    document.addEventListener("visibilitychange", watchVisibleLoad);
     let inputHandler: import("cesium").ScreenSpaceEventHandler | null = null;
     let imageryFadeFrame: number | null = null;
     let resizeHandler: (() => void) | null = null;
@@ -1480,6 +1502,8 @@ export function GlobeScene({
         // A dark ellipsoid remains usable if the host has not copied Cesium assets.
       }
 
+      if (cancelled || !containerRef.current) return;
+
       const viewer = new Cesium.Viewer(container, {
         animation: false,
         baseLayer: naturalEarthLayer,
@@ -1506,6 +1530,7 @@ export function GlobeScene({
 
       cesiumRef.current = Cesium;
       viewerRef.current = viewer;
+      removeErrorListener = viewer.scene.renderError.addEventListener(failLoad);
       markerImageRef.current = createMarkerImage();
 
       viewer.scene.backgroundColor =
@@ -1937,14 +1962,30 @@ export function GlobeScene({
         fontSize: "10px",
         },
       );
+      // Start the opening pullback only after a frame with settled base imagery.
+      removeReadyListener = viewer.scene.postRender.addEventListener(() => {
+        if (cancelled || ready || !viewer.scene.globe.tilesLoaded) return;
+        ready = true;
+        window.clearTimeout(loadDeadline);
+        removeReadyListener?.();
+        container.dataset.ready = "true";
+        onLoadStateChangeRef.current?.("ready");
+        window.dispatchEvent(new Event("chrono-earth:globe-ready"));
+      });
+      viewer.scene.requestRender();
     }
 
-    void initialise();
+    void initialise().catch(failLoad);
 
     return () => {
       interactionContainer?.removeEventListener("pointerdown", markUserCameraInput);
       interactionContainer?.removeEventListener("wheel", markUserCameraInput);
       cancelled = true;
+      if (interactionContainer) delete interactionContainer.dataset.ready;
+      window.clearTimeout(loadDeadline);
+      document.removeEventListener("visibilitychange", watchVisibleLoad);
+      removeReadyListener?.();
+      removeErrorListener?.();
       if (imageryFadeFrame !== null) {
         window.cancelAnimationFrame(imageryFadeFrame);
       }

@@ -14,6 +14,7 @@ import {
   type PerformanceMode,
   type PerformanceTier,
 } from "./components/GlobeScene";
+import "./loading-experience.css";
 import { AmbientSoundscape } from "./components/AmbientSoundscape";
 import type { SoundCue } from "./components/AmbientSoundscape";
 import GlobePerformanceControls from "./components/GlobePerformanceControls";
@@ -38,6 +39,7 @@ import VoiceArchive from "./components/VoiceArchive";
 import VoiceObservatory from "./components/VoiceObservatory";
 import ExperienceHub, { type ExperiencePreset, type HubAction } from "./components/ExperienceHub";
 import EssentialTour from "./components/EssentialTour";
+import FirstExploreGuide from "./components/FirstExploreGuide";
 import ShortcutHelp from "./components/ShortcutHelp";
 import { eras, getEraForYear } from "./data/eras";
 import {
@@ -237,6 +239,9 @@ export function ChronoExperience() {
   const [archiveLayer, setArchiveLayer] = useState<ArchiveLayer>("place");
   const [prologueVisible, setPrologueVisible] = useState(false);
   const [globeEnabled, setGlobeEnabled] = useState(true);
+  const [globeLoadState, setGlobeLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [globeLoadSlow, setGlobeLoadSlow] = useState(false);
+  const [openingRequested, setOpeningRequested] = useState(false);
   const [introVisible, setIntroVisible] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -331,9 +336,9 @@ export function ChronoExperience() {
   const storyExitTimer = useRef<number | null>(null);
   const soundCueKey = useRef(0);
   const searchRef = useRef<HTMLInputElement>(null);
-  const searchDialogRef = useRef<HTMLElement>(null);
+  const searchDialogRef = useRef<HTMLDivElement>(null);
   const lensPanelDialogRef = useRef<HTMLElement>(null);
-  const lensGuideDialogRef = useRef<HTMLElement>(null);
+  const globeGuidePointerRef = useRef<{ x: number; y: number } | null>(null);
   const offlinePacksDialogRef = useRef<HTMLElement>(null);
   const storyDialogRef = useRef<HTMLElement>(null);
   const cameraAnnouncementKey = useRef(0);
@@ -354,8 +359,6 @@ export function ChronoExperience() {
   const routePreviewCategory = routePreview
     ? getRouteCategoryMeta(routePreview.category)
     : undefined;
-  const activeLensGuide =
-    lensGuideStep === null ? null : FOCUS_LENSES[lensGuideStep];
   const lensTransitionTarget = lensTransition
     ? FOCUS_LENSES.find(({ id }) => id === lensTransition.to) ?? null
     : null;
@@ -535,10 +538,7 @@ export function ChronoExperience() {
             (value) => value.toLocaleLowerCase("zh-CN").includes(query),
           ),
         )
-      : [...places].sort(
-          (left, right) =>
-            (right.importance ?? 0) - (left.importance ?? 0),
-        );
+      : places;
 
     return rankedPlaces.slice(0, 6);
   }, [searchQuery]);
@@ -564,8 +564,28 @@ export function ChronoExperience() {
     : `GLOBAL ARCHIVE · ${currentEra.englishLabel.toUpperCase()} · ${activeRoutes.length} ACTIVE THREADS`;
 
   const finishOpening = useCallback(() => {
-    setOpeningStage((stage) => (stage === "done" ? "done" : "depart"));
+    setOpeningRequested(true);
   }, []);
+
+  const handleGlobeLoadState = useCallback((state: "loading" | "ready" | "error") => {
+    setGlobeLoadState(state);
+    if (state === "loading") setGlobeLoadSlow(false);
+  }, []);
+
+  useEffect(() => {
+    if (openingRequested && globeLoadState === "ready") {
+      const timer = window.setTimeout(() => {
+        setOpeningStage((stage) => (stage === "done" ? "done" : "depart"));
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [globeLoadState, openingRequested]);
+
+  useEffect(() => {
+    if (globeLoadState !== "loading") return;
+    const timer = window.setTimeout(() => setGlobeLoadSlow(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [globeLoadState]);
 
   const finishLensGuide = useCallback(() => {
     setLensGuideStep(null);
@@ -707,7 +727,7 @@ export function ChronoExperience() {
     }, 0);
     const focusTimer = window.setTimeout(() => setOpeningStage("focus"), 80);
     const departTimer = window.setTimeout(
-      () => setOpeningStage("depart"),
+      () => setOpeningRequested(true),
       alreadySeen ? 2100 : 3200,
     );
     return () => {
@@ -818,25 +838,15 @@ export function ChronoExperience() {
     if (
       !localStateHydrated ||
       !lensGuideEligible ||
+      lensGuideStep !== null ||
+      globeLoadState !== "ready" ||
       openingActive ||
       selectedId ||
       storyOpen
     ) return;
     const timer = window.setTimeout(() => setLensGuideStep(0), 900);
     return () => window.clearTimeout(timer);
-  }, [lensGuideEligible, localStateHydrated, openingActive, selectedId, storyOpen]);
-
-  useEffect(() => {
-    if (!activeLensGuide) return;
-    const timer = window.setTimeout(() => {
-      setFocusMode(true);
-      requestFocusLens(activeLensGuide.id);
-      setLensPanelOpen(false);
-      setSearchOpen(false);
-      setFilterOpen(false);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [activeLensGuide, requestFocusLens]);
+  }, [globeLoadState, lensGuideEligible, lensGuideStep, localStateHydrated, openingActive, selectedId, storyOpen]);
 
   useEffect(() => {
     const activeSequence = lensTransition?.sequence;
@@ -862,28 +872,12 @@ export function ChronoExperience() {
   }, [lensTransition?.sequence, lensTransition?.to]);
 
   useEffect(() => {
-    if (lensGuideStep === null) return;
-    const handleGuideKeys = (event: KeyboardEvent) => {
-      if (event.key === "Escape") finishLensGuide();
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        setLensGuideStep((step) => Math.max(0, (step ?? 0) - 1));
-      }
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        if (lensGuideStep >= FOCUS_LENSES.length - 1) finishLensGuide();
-        else setLensGuideStep(lensGuideStep + 1);
-      }
-    };
-    window.addEventListener("keydown", handleGuideKeys);
-    return () => window.removeEventListener("keydown", handleGuideKeys);
-  }, [finishLensGuide, lensGuideStep]);
-
-  useEffect(() => {
     if (lensGuideStep === null || !selectedId) return;
-    const timer = window.setTimeout(finishLensGuide, 0);
+    const nextStep = archiveLayer === "chronicle" ? 3 : 2;
+    if (lensGuideStep >= nextStep) return;
+    const timer = window.setTimeout(() => setLensGuideStep(nextStep), 0);
     return () => window.clearTimeout(timer);
-  }, [finishLensGuide, lensGuideStep, selectedId]);
+  }, [archiveLayer, lensGuideStep, selectedId]);
 
   useEffect(() => {
     const handleCommand = (event: KeyboardEvent) => {
@@ -1256,11 +1250,6 @@ export function ChronoExperience() {
   );
   useModalFocus(storyDialogRef, exitStory, storyOpen);
   useModalFocus(
-    lensGuideDialogRef,
-    finishLensGuide,
-    lensGuideStep !== null && Boolean(activeLensGuide) && !openingActive,
-  );
-  useModalFocus(
     lensPanelDialogRef,
     () => setLensPanelOpen(false),
     focusMode && lensPanelOpen && !openingActive && !selectedPlace,
@@ -1427,7 +1416,7 @@ export function ChronoExperience() {
     <main
       className={`experience-shell era-${currentEra.id}${
         prologueVisible ? " is-prologue" : ""
-      }${focusMode ? ` is-focus-mode is-lens-${focusLens}` : ""}${openingActive ? ` is-opening-${openingStage}` : ""}${activeLensGuide ? " is-lens-guide" : ""}${lensTransition ? ` is-lens-transition is-lens-transition-${lensTransition.phase} from-${lensTransition.from} to-${lensTransition.to}` : ""}${timelineTraveling ? ` is-time-traveling is-traveling-${timelineDirection}` : ""}${textScale === "large" ? " is-large-text" : ""}${highContrast ? " is-high-contrast" : ""}${reducedMotion ? " is-reduced-motion" : ""}`}
+      }${focusMode ? ` is-focus-mode is-lens-${focusLens}` : ""}${openingActive ? ` is-opening-${openingStage}` : ""}${lensTransition ? ` is-lens-transition is-lens-transition-${lensTransition.phase} from-${lensTransition.from} to-${lensTransition.to}` : ""}${timelineTraveling ? ` is-time-traveling is-traveling-${timelineDirection}` : ""}${textScale === "large" ? " is-large-text" : ""}${highContrast ? " is-high-contrast" : ""}${reducedMotion ? " is-reduced-motion" : ""}`}
       style={
         {
           "--era-accent": currentEra.accent,
@@ -1636,7 +1625,15 @@ export function ChronoExperience() {
         </section>
       )}
 
-      <div className="globe-stage" aria-label="可交互三维地球">
+      <div className="globe-stage" aria-label="可交互三维地球"
+        onPointerDownCapture={(event) => { globeGuidePointerRef.current = { x: event.clientX, y: event.clientY }; }}
+        onPointerUpCapture={(event) => {
+          const start = globeGuidePointerRef.current;
+          globeGuidePointerRef.current = null;
+          if (lensGuideStep === 0 && start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 24) setLensGuideStep(1);
+        }}
+        onPointerCancelCapture={() => { globeGuidePointerRef.current = null; }}
+      >
         <GlobeScene
           places={globePlaces}
           voices={focusMode ? [] : globeVoices}
@@ -1650,6 +1647,7 @@ export function ChronoExperience() {
           openingPhase={openingStage}
           performanceMode={reducedMotion ? "low" : performanceMode}
           enabled={globeEnabled}
+          onLoadStateChange={handleGlobeLoadState}
           onPerformanceTierChange={setActivePerformanceTier}
           onRuntimePerformance={({ fps, adapted }) => {
             setRuntimeFps(fps);
@@ -1716,71 +1714,57 @@ export function ChronoExperience() {
             </article>
           )}
           <footer>
-            <span>从一个文明坐标，看见整颗地球</span>
-            <button type="button" onClick={finishOpening}>进入时光地球 <b aria-hidden="true">→</b></button>
+            <span role="status" aria-live="polite">
+              {globeLoadState === "error" ? "地球暂时未能载入，请重新尝试。"
+                : globeLoadState === "loading" ? (globeLoadSlow ? "首次载入需要一点时间，正在准备地球…" : "正在准备你的第一站…")
+                  : "从一个文明坐标，看见整颗地球"}
+            </span>
+            {globeLoadState === "error" ? (
+              <>
+                <button type="button" onClick={() => window.location.reload()}>重新加载</button>
+                <button type="button" onClick={() => setOpeningStage("done")}>先浏览历史</button>
+              </>
+            ) : (
+              <button type="button" onClick={finishOpening} disabled={globeLoadState !== "ready"}>
+                {globeLoadState === "ready" ? "进入时光地球" : "正在载入地球…"} <b aria-hidden="true">→</b>
+              </button>
+            )}
           </footer>
         </section>
       )}
 
-      {activeLensGuide && lensGuideStep !== null && !openingActive && (
-        <>
-          <div className="lens-discovery-backdrop" aria-hidden="true" />
-          <section
-            ref={lensGuideDialogRef}
-            tabIndex={-1}
-            className={`lens-discovery-card is-${activeLensGuide.id}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`发现观察镜头：${activeLensGuide.label}`}
-          >
-            <header>
-              <span>FIRST ORBIT · OBSERVATION LENS</span>
-              <button type="button" onClick={finishLensGuide}>跳过引导</button>
-            </header>
-            <div className="lens-discovery-card__index" aria-hidden="true">
-              {activeLensGuide.index}
-            </div>
-            <p>{activeLensGuide.english}</p>
-            <h2>{activeLensGuide.label}</h2>
-            <blockquote>{activeLensGuide.guide}</blockquote>
-            <div className="lens-discovery-card__signal">
-              <i aria-hidden="true" />
-              <span>
-                {activeLensGuide.id === "landmarks"
-                  ? `${places.length} 座文明坐标等待发现`
-                  : activeLensGuide.id === "routes"
-                    ? `${activeRoutes.length} 条路线在 ${formatYear(currentYear)} 活跃`
-                    : `${historicalVoices.length} 段历史之声环绕地球`}
-              </span>
-            </div>
-            <footer>
-              <div aria-label={`引导进度 ${lensGuideStep + 1} / ${FOCUS_LENSES.length}`}>
-                {FOCUS_LENSES.map((lens, index) => (
-                  <i key={lens.id} className={index === lensGuideStep ? "active" : ""} />
-                ))}
-              </div>
-              <nav aria-label="引导步骤">
-                {lensGuideStep > 0 && (
-                  <button type="button" onClick={() => setLensGuideStep(lensGuideStep - 1)}>
-                    上一步
-                  </button>
-                )}
-                <button
-                  className="primary"
-                  type="button"
-                  data-modal-autofocus
-                  onClick={() => {
-                    if (lensGuideStep >= FOCUS_LENSES.length - 1) finishLensGuide();
-                    else setLensGuideStep(lensGuideStep + 1);
-                  }}
-                >
-                  {lensGuideStep >= FOCUS_LENSES.length - 1 ? "开始自由探索" : "看下一个镜头"}
-                  <b aria-hidden="true">→</b>
-                </button>
-              </nav>
-            </footer>
-          </section>
-        </>
+      {!openingActive && globeLoadState !== "ready" && (
+        <aside className="globe-loading-panel" aria-label="地球加载状态">
+          <p role="status">{globeLoadState === "error" ? "地球暂时无法载入，历史档案仍可浏览。"
+            : globeLoadSlow ? "地球仍在载入，你可以先搜索历史地点。" : "正在准备地球…"}</p>
+          {globeLoadState === "error" && <button type="button" onClick={() => window.location.reload()}>重新加载</button>}
+          <button type="button" onClick={() => setSearchOpen(true)}>搜索历史地点</button>
+        </aside>
+      )}
+
+      {lensGuideStep !== null && !openingActive && globeLoadState === "ready" &&
+        !introVisible && !storyOpen && !searchOpen && !lensPanelOpen && !activeVoiceId &&
+        !essentialTourOpen && !experienceHubOpen && !mediaLightboxOpen && !filterOpen &&
+        !shortcutHelpOpen && !regionNavigatorOpen && !performanceOpen && !offlinePacksOpen &&
+        !civilizationNetworkOpen && !voiceJourneyLibraryOpen && !voiceArchiveOpen &&
+        !voiceObservatoryOpen && !resultsOpen && !favoritesOpen && (
+        <FirstExploreGuide
+          step={lensGuideStep}
+          onStepChange={setLensGuideStep}
+          onDismiss={finishLensGuide}
+          onFindPlace={() => setSearchOpen(true)}
+          onReadHistory={() => {
+            if (selectedPlace) setArchiveLayer("chronicle");
+            else setSearchOpen(true);
+          }}
+          onExploreTimeline={() => {
+            setSelectedId(null);
+            setPlaying(false);
+            window.requestAnimationFrame(() => {
+              document.querySelector<HTMLInputElement>('.timeline-track input[type="range"]')?.focus();
+            });
+          }}
+        />
       )}
 
       {lensTransition && lensTransitionTarget && !openingActive && (
@@ -2695,8 +2679,8 @@ export function ChronoExperience() {
                 <div>
                   {selectedConnections.slice(0, 6).map(({ route, destination, category }) => (
                     <button key={route.id} type="button" onClick={() => destination && selectPlace(destination.id)}>
-                      <i style={{ "--thread-accent": category.accent } as CSSProperties}>{category.symbol}</i>
-                      <span><small>{category.label} · {formatYear(route.period[0])}—{formatYear(route.period[1])}</small><strong>{route.label}</strong><p>{selectedPlace.name} → {destination?.name}</p></span>
+                      <i style={{ "--thread-accent": category?.accent ?? selectedPlace.accent } as CSSProperties}>{category?.symbol ?? "↗"}</i>
+                      <span><small>{category?.label ?? "文明路线"} · {formatYear(route.period[0])}—{formatYear(route.period[1])}</small><strong>{route.label}</strong><p>{selectedPlace.name} → {destination?.name}</p></span>
                       <b aria-hidden="true">↗</b>
                     </button>
                   ))}
@@ -2855,6 +2839,7 @@ export function ChronoExperience() {
                 onBlur={finishTimelineTravel}
                 onChange={(event) => {
                   travelToYear(Number(event.target.value));
+                  if (lensGuideStep === 3) finishLensGuide();
                 }}
                 aria-label="选择历史年份"
                 aria-valuetext={`${formatYear(currentYear)}，${currentEra.label}`}

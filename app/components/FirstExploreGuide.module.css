@@ -1,0 +1,46 @@
+.guide {
+  position: absolute;
+  z-index: 16;
+  top: 112px;
+  left: clamp(18px, 3vw, 48px);
+  width: min(310px, calc(100vw - 36px));
+  padding: 14px 18px 12px;
+  color: #f0e5cd;
+  border: 1px solid rgba(222, 189, 127, 0.25);
+  border-radius: 14px;
+  background: rgba(9, 13, 13, 0.93);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+}
+
+.header, .footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header > span { color: #c9bda5; font-size: 12px; line-height: 1.5; }
+.title { margin: 4px 0 8px; font-size: 19px; font-weight: 500; line-height: 1.5; }
+.description { margin: 0; color: #d2c9b6; font-size: 14px; line-height: 1.7; }
+.footer { margin-top: 8px; }
+.dismiss, .action { min-height: 44px; border: 0; background: transparent; font: inherit; cursor: pointer; }
+.dismiss { min-width: 44px; padding: 0; color: #c9bda5; font-size: 13px; }
+.action { padding: 0; color: #f4dca6; font-size: 14px; }
+.dismiss:hover, .action:hover { color: #fff4d6; }
+.dismiss:focus-visible, .action:focus-visible { outline: 2px solid #e5c27d; outline-offset: 4px; border-radius: 3px; }
+.progress { display: flex; gap: 5px; }
+.progress i { width: 12px; height: 3px; border-radius: 2px; background: #555047; }
+.progress .visited { background: #d4b777; }
+
+@media (max-width: 700px) {
+  .guide { top: 76px; left: 12px; width: min(310px, calc(100vw - 84px)); padding: 8px 13px; border-radius: 10px; }
+  .title { margin: 0 0 4px; font-size: 16px; }
+  .description { font-size: 13px; line-height: 1.6; }
+  .footer { margin-top: 2px; }
+}
+
+@media (max-height: 520px) and (min-width: 701px) {
+  .guide { top: 78px; width: 280px; padding: 8px 14px; }
+  .title { font-size: 17px; margin: 0 0 4px; }
+  .description { font-size: 13px; }
+}

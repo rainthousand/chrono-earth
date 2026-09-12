@@ -138,7 +138,7 @@ export default function VoiceObservatory({ places, onSelect, onClose }: VoiceObs
 
         {mode === "daily" && <div className="observatory-daily">
           <div className="observatory-stage-heading"><span>STAGE IV · ONE SIGNAL EACH DAY</span><h3>今日文明信号</h3></div>
-          <article><span>{new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })} · SIGNAL {String(dailyIndex + 1).padStart(2, "0")}</span><blockquote>{daily.text}</blockquote><p>{daily.translation}</p><div>{daily.narration}</div><footer><strong>{daily.author}</strong><i>{daily.work} · {placeMap.get(daily.placeId)?.name}</i><button type="button" onClick={() => onSelect(daily.placeId, daily.id)}>接收这束信号 →</button></footer></article>
+          <article><span>{new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })} · SIGNAL {String(DAILY_VOICE_INDEX + 1).padStart(2, "0")}</span><blockquote>{daily.text}</blockquote><p>{daily.translation}</p><div>{daily.narration}</div><footer><strong>{daily.author}</strong><i>{daily.work} · {placeMap.get(daily.placeId)?.name}</i><button type="button" onClick={() => onSelect(daily.placeId, daily.id)}>接收这束信号 →</button></footer></article>
         </div>}
 
         {mode === "performance" && <div className={`observatory-performance${showPlaying ? " playing" : ""}`}>

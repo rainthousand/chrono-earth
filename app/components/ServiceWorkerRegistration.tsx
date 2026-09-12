@@ -25,15 +25,17 @@ export function ServiceWorkerRegistration() {
       }
     };
 
-    if (document.readyState === "complete") {
+    // The offline worker precaches many photographs. Wait for the first globe
+    // frame so those downloads do not compete with the initial engine/texture.
+    if (document.querySelector('.globe-canvas[data-ready="true"]')) {
       void register();
     } else {
-      window.addEventListener("load", register, { once: true });
+      window.addEventListener("chrono-earth:globe-ready", register, { once: true });
     }
 
     return () => {
       cancelled = true;
-      window.removeEventListener("load", register);
+      window.removeEventListener("chrono-earth:globe-ready", register);
     };
   }, []);
 

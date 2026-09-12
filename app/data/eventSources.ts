@@ -155,7 +155,7 @@ export const eventSources: Readonly<Record<string, readonly EventSource[]>> = {
       "Historic Sanctuary of Machu Picchu",
       274,
       "medium",
-      "UNESCO 将遗址置于印加文明鼎盛时期；1450年是项目采用的近似营建节点。",
+      "UNESCO 明确记载遗址建于十五世纪，描述农业区、居住区、梯田与水道；1450年是近似节点，不能据此认定精确开工年或唯一用途。",
     ),
   ],
   "bamiyan-buddhas:2001": [
@@ -789,23 +789,25 @@ export const eventSources: Readonly<Record<string, readonly EventSource[]>> = {
     ),
   ],
   "giza-pyramids:-2560": [
-    unescoSource(
+    officialSource(
       "giza-pyramids",
       -2560,
-      "Memphis and its Necropolis – the Pyramid Fields from Giza to Dahshur",
-      86,
+      "The Great Pyramid",
+      "Egypt Ministry of Tourism and Antiquities",
+      "https://egymonuments.gov.eg/monuments/the-great-pyramid/",
       "medium",
-      "UNESCO 页面支持吉萨金字塔群属于古王国时期孟菲斯墓地体系；公元前2560年是胡夫金字塔落成的近似编年节点，并非精确日断。",
+      "埃及文物主管部门记载胡夫陵墓原高146.5米、石灰岩材料及外覆石材；其胡夫在位编年为约前2589—2566年，不支持将前2560年视为确切竣工年。",
     ),
   ],
   "giza-pyramids:1798": [
-    unescoSource(
+    officialSource(
       "giza-pyramids",
       1798,
-      "Memphis and its Necropolis – the Pyramid Fields from Giza to Dahshur",
-      86,
-      "medium",
-      "UNESCO 页面用于支持遗址范围与考古价值背景；1798年法国远征测绘这一具体节点需结合专项档案核验。",
+      "Description of Egypt. Second Edition. Atlas of Egypt and Parts of Bordering Lands",
+      "Library of Congress",
+      "https://www.loc.gov/item/2021668392/",
+      "high",
+      "馆藏说明记载1798年随法国入侵而来的学者展开古迹和地形调查，并交代其成果后来编入《埃及志》的出版背景。",
     ),
   ],
   "stonehenge:-2500": [
@@ -849,13 +851,14 @@ export const eventSources: Readonly<Record<string, readonly EventSource[]>> = {
     ),
   ],
   "pompeii:1748": [
-    unescoSource(
+    officialSource(
       "pompeii",
       1748,
-      "Archaeological Areas of Pompei, Herculaneum and Torre Annunziata",
-      829,
+      "Pompeii after the Eruption",
+      "Parco Archeologico di Pompei",
+      "https://pompeiisites.org/en/pompeii-map/analysis/pompeii-after-the-eruption/",
       "high",
-      "UNESCO 条目将庞贝系统性发掘的开始明确置于十八世纪中叶，支持1748年的发掘节点。",
+      "考古公园官方介绍明确记载，1748年波旁国王决定在奇维塔丘发掘，此前已在赫库兰尼姆探索十年；不将早期发掘等同于现代考古方法。",
     ),
   ],
   "petra:-100": [
@@ -919,13 +922,14 @@ export const eventSources: Readonly<Record<string, readonly EventSource[]>> = {
     ),
   ],
   "mogao-caves:1900": [
-    unescoSource(
+    officialSource(
       "mogao-caves",
       1900,
-      "Mogao Caves",
-      440,
-      "medium",
-      "UNESCO 页面支持莫高窟藏经洞及其文献价值背景；1900年发现节点需结合敦煌研究档案核验。",
+      "Cave 17: the Library Cave — Discovering Cave 17",
+      "British Library · International Dunhuang Programme",
+      "https://idp.bl.uk/discover/learning/dunhuang/dunhuang-articles/cave-17-the-library-cave/discovering-cave-17/",
+      "high",
+      "专题记录王圆箓于1900年在第16窟甬道发现入口，以及第17窟写本与绘画随后分散收藏的经过。",
     ),
   ],
   "angkor-wat:1431": [
@@ -944,8 +948,8 @@ export const eventSources: Readonly<Record<string, readonly EventSource[]>> = {
       1653,
       "Taj Mahal",
       252,
-      "medium",
-      "UNESCO 页面支持泰姬陵十七世纪的整体营建过程；1653年作为建筑群完成节点是概括性编年。",
+      "high",
+      "UNESCO 的 Outstanding Universal Value 明确区分主体陵墓于1648年完成，以及清真寺、迎宾馆、大门与外院等附属工程延续至1653年。",
     ),
   ],
   "notre-dame-paris:1163": [
@@ -989,13 +993,14 @@ export const eventSources: Readonly<Record<string, readonly EventSource[]>> = {
     ),
   ],
   "machu-picchu:1911": [
-    unescoSource(
+    officialSource(
       "machu-picchu",
       1911,
-      "Historic Sanctuary of Machu Picchu",
-      274,
-      "medium",
-      "UNESCO 页面支持马丘比丘进入现代研究与保护视野的背景；1911年考察节点需结合探险与考古档案核验。",
+      "Plan Maestro del Santuario Histórico de Machupicchu — Diagnóstico y anexos",
+      "Ministerio de Cultura del Perú",
+      "https://www.machupicchu.gob.pe/wp-content/uploads/2024/05/1-11-DIAGNOSTICO-Y-ANEXOS-PLAN-MAESTRO-DEL-SHM.pdf",
+      "high",
+      "官方保护规划附件第202页记载1911年7月考察队在Melchor Arteaga、Richarte和Anacleto Álvarez协助下抵达，1912年起继续清理、调查与发掘。",
     ),
   ],
   "chichen-itza:900": [

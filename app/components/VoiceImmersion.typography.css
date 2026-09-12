@@ -1,0 +1,47 @@
+/* Keep the source in one text run: native shaping preserves Arabic joins,
+   Indic clusters, real spaces and East Asian punctuation at line boundaries. */
+.voice-immersion h2.voice-immersion__quote {
+  display: block;
+  max-inline-size: 100%;
+  letter-spacing: 0.025em;
+  word-spacing: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+  white-space: normal;
+  text-align: center;
+  text-wrap: balance;
+  animation: voice-quote-arrive 1100ms 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.voice-immersion h2.voice-immersion__quote:lang(zh),
+.voice-immersion h2.voice-immersion__quote:lang(ja) {
+  line-break: strict;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+
+.voice-immersion h2.voice-immersion__quote:lang(ar),
+.voice-immersion h2.voice-immersion__quote:lang(fa),
+.voice-immersion h2.voice-immersion__quote:lang(he),
+.voice-immersion h2.voice-immersion__quote:lang(sa) {
+  letter-spacing: normal;
+  line-height: 1.65;
+}
+
+@keyframes voice-quote-arrive {
+  from { opacity: 0; filter: blur(5px); transform: translateY(12px); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+
+@media (max-width: 600px) {
+  .voice-immersion h2.voice-immersion__quote {
+    font-size: clamp(23px, 6.8vw, 38px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-immersion h2.voice-immersion__quote {
+    animation: none;
+  }
+}
