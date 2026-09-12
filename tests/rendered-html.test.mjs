@@ -33,8 +33,9 @@ test("server-renders the Chrono Earth experience shell", async () => {
   const html = await response.text();
   assert.match(html, /<title>Chrono Earth · 时光地球<\/title>/i);
   assert.match(html, /CHRONO EARTH/);
-  assert.match(html, /每一片土地/);
-  assert.match(html, /开始探索/);
+  assert.match(html, /世界历史时间轴/);
+  assert.match(html, /experience-shell[^>]*is-focus-mode/);
+  assert.doesNotMatch(html, /class="prologue"|class="intro-overlay"/);
   assert.doesNotMatch(html, /codex-preview|Building your site/);
 });
 

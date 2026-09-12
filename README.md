@@ -2,6 +2,14 @@
 
 一个以 3D 地球为空间入口、以时间轴为叙事入口的纯前端沉浸式历史探索网站。
 
+## 在线访问与发布
+
+- 网站：https://rainthousand.github.io/chrono-earth/
+- 仓库：https://github.com/rainthousand/chrono-earth
+- 推送到 `main` 后，GitHub Actions 自动构建并发布 Pages。
+- `npm run build:pages` 生成 `dist-pages/`，使用 `/chrono-earth/` 子目录；该入口直接在浏览器渲染，无需服务器或登录。
+- `vite.pages.config.ts` 为静态版本统一调整公共资源、Service Worker 和 PWA 清单路径，保留原有 localhost 构建。
+
 ## 已实现
 
 - CesiumJS 可旋转、缩放的 3D 地球
@@ -30,3 +38,8 @@ npm test
 
 > 用户不是在地图上寻找地点，而是在转动地球、唤醒历史。
 
+## 影像来源
+
+高清地球纹理来自 NASA/Goddard Space Flight Center Scientific
+Visualization Studio，Blue Marble Next Generation 数据由
+Reto Stockli（NASA/GSFC）与 NASA Earth Observatory 提供。

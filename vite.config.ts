@@ -6,6 +6,7 @@ import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
+const CESIUM_CHUNK_MAX_SIZE = 440 * 1024;
 
 const { d1, r2 } = hostingConfig;
 
@@ -48,29 +49,64 @@ export default defineConfig(async () => {
     define: {
       CESIUM_BASE_URL: JSON.stringify("/cesium/"),
     },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    environments: {
+      client: {
+        build: {
+          rolldownOptions: {
+            output: {
+              // Cesium is loaded through a dynamic import; keep that boundary
+              // while splitting its ES modules into cacheable sub-500 kB chunks.
+              codeSplitting: {
+                groups: [
+                  {
+                    name: "cesium",
+                    test:
+                      /node_modules[\\/](?:cesium|@cesium[\\/][^\\/]+)[\\/]/,
+                    priority: 100,
+                    minSize: 400 * 1024,
+                    maxSize: CESIUM_CHUNK_MAX_SIZE,
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+    server: {
+      // Vite 8's browser-console forwarding can attempt to report an error
+      // after its HMR websocket has already disconnected. The preview does not
+      // rely on forwarded browser logs, so disabling the channel prevents the
+      // resulting `transport.send` / undefined websocket rejection loop.
+      forwardConsole: false,
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
+    },
     plugins: [
       vinext(),
       sites(),
       viteStaticCopy({
         targets: [
           {
-            src: "node_modules/cesium/Build/Cesium/Assets",
-            dest: "cesium",
+            src: "node_modules/cesium/Build/Cesium/Assets/**/*",
+            dest: "cesium/Assets",
+            rename: { stripBase: 5 },
           },
           {
-            src: "node_modules/cesium/Build/Cesium/ThirdParty",
-            dest: "cesium",
+            src: "node_modules/cesium/Build/Cesium/ThirdParty/**/*",
+            dest: "cesium/ThirdParty",
+            rename: { stripBase: 5 },
           },
           {
-            src: "node_modules/cesium/Build/Cesium/Workers",
-            dest: "cesium",
+            src: "node_modules/cesium/Build/Cesium/Workers/**/*",
+            dest: "cesium/Workers",
+            rename: { stripBase: 5 },
           },
           {
-            src: "node_modules/cesium/Build/Cesium/Widgets",
-            dest: "cesium",
+            src: "node_modules/cesium/Build/Cesium/Widgets/**/*",
+            dest: "cesium/Widgets",
+            rename: { stripBase: 5 },
           },
         ],
       }),
