@@ -9,6 +9,7 @@ export function ServiceWorkerRegistration() {
     }
 
     let cancelled = false;
+    let registrationTimer: number | undefined;
 
     const register = async () => {
       try {
@@ -25,17 +26,25 @@ export function ServiceWorkerRegistration() {
       }
     };
 
-    // The offline worker precaches many photographs. Wait for the first globe
-    // frame so those downloads do not compete with the initial engine/texture.
-    if (document.querySelector('.globe-canvas[data-ready="true"]')) {
-      void register();
-    } else {
-      window.addEventListener("chrono-earth:globe-ready", register, { once: true });
-    }
+    // Precaching photographs must not compete with the opening camera flight.
+    // Observe the completed transition too: first-frame ready starts that flight.
+    const schedule = () => {
+      window.clearTimeout(registrationTimer);
+      if (!document.querySelector('.globe-canvas[data-ready="true"]') ||
+        document.querySelector('.civilization-opening')) return;
+      registrationTimer = window.setTimeout(() => {
+        if (!cancelled) void register();
+      }, 3500);
+    };
+    window.addEventListener("chrono-earth:globe-ready", schedule);
+    window.addEventListener("chrono-earth:opening-finished", schedule);
+    schedule();
 
     return () => {
       cancelled = true;
-      window.removeEventListener("chrono-earth:globe-ready", register);
+      window.clearTimeout(registrationTimer);
+      window.removeEventListener("chrono-earth:globe-ready", schedule);
+      window.removeEventListener("chrono-earth:opening-finished", schedule);
     };
   }, []);
 

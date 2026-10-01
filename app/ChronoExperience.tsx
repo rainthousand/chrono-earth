@@ -60,7 +60,7 @@ import { useModalFocus } from "./hooks/useModalFocus";
 const MIN_YEAR = -3000;
 const MAX_YEAR = 2026;
 const PROLOGUE_DURATION = 5200;
-const GLOBE_LOAD_DELAY = 600;
+const GLOBE_LOAD_DELAY = 1000;
 const places: readonly Place[] = [...corePlaces, ...extendedPlaces];
 const TOTAL_EVENTS = places.reduce(
   (total, place) => total + place.events.length,
@@ -238,7 +238,7 @@ export function ChronoExperience() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [archiveLayer, setArchiveLayer] = useState<ArchiveLayer>("place");
   const [prologueVisible, setPrologueVisible] = useState(false);
-  const [globeEnabled, setGlobeEnabled] = useState(true);
+  const [globeEnabled, setGlobeEnabled] = useState(false);
   const [globeLoadState, setGlobeLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [globeLoadSlow, setGlobeLoadSlow] = useState(false);
   const [openingRequested, setOpeningRequested] = useState(false);
@@ -566,6 +566,12 @@ export function ChronoExperience() {
   const finishOpening = useCallback(() => {
     setOpeningRequested(true);
   }, []);
+
+  useEffect(() => {
+    if (openingStage === "done") {
+      window.dispatchEvent(new Event("chrono-earth:opening-finished"));
+    }
+  }, [openingStage]);
 
   const handleGlobeLoadState = useCallback((state: "loading" | "ready" | "error") => {
     setGlobeLoadState(state);

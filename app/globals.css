@@ -6851,7 +6851,7 @@ input:focus-visible {
   background:
     radial-gradient(circle at 50% 48%, transparent 0 18%, rgba(0, 0, 0, 0.16) 38%, rgba(0, 0, 0, 0.78) 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.52), transparent 34%, rgba(0, 0, 0, 0.48));
-  transition: opacity 2.5s cubic-bezier(0.16, 1, 0.3, 1), background 1s ease;
+  transition: opacity 2.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .civilization-opening::before {
@@ -6866,7 +6866,6 @@ input:focus-visible {
   border-radius: 50%;
   box-shadow: inset 0 0 110px rgba(214, 159, 69, 0.035);
   transform: translate(-50%, -50%);
-  animation: opening-orbit 18s linear infinite;
 }
 
 .civilization-opening > figure {
@@ -6878,7 +6877,8 @@ input:focus-visible {
   pointer-events: none;
   mask-image: linear-gradient(90deg, transparent, #000 34%, #000 100%);
   opacity: 0.46;
-  transition: opacity 1.2s ease, transform 2.4s cubic-bezier(0.16, 1, 0.3, 1), filter 1.2s ease;
+  transition: opacity 1.2s ease, transform 2.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
 }
 
 .civilization-opening > figure::after {
@@ -7022,14 +7022,12 @@ input:focus-visible {
 
 .civilization-opening.is-depart article {
   transform: translateY(-56%);
-  filter: blur(6px);
   opacity: 0;
-  transition: opacity 700ms ease, transform 1.2s ease, filter 900ms ease;
+  transition: opacity 700ms ease, transform 1.2s ease;
 }
 
 .civilization-opening.is-depart figure {
   opacity: 0;
-  filter: blur(8px);
   transform: scale(1.035);
 }
 
@@ -7050,7 +7048,7 @@ input:focus-visible {
 }
 
 @keyframes opening-copy-in {
-  from { opacity: 0; filter: blur(10px); transform: translateY(18px); }
+  from { opacity: 0; transform: translateY(18px); }
 }
 
 @keyframes opening-interface-in {
@@ -7062,8 +7060,8 @@ input:focus-visible {
 }
 
 @keyframes opening-photo-drift {
-  from { transform: scale(1.1); filter: grayscale(0.82) sepia(0.3) saturate(0.7) brightness(0.54) contrast(1.24) blur(5px); }
-  to { transform: scale(1.02); filter: grayscale(0.82) sepia(0.3) saturate(0.7) brightness(0.54) contrast(1.24) blur(0); }
+  from { transform: scale(1.055); }
+  to { transform: scale(1.02); }
 }
 
 /* Sparse historical voices return as atmosphere, not as a second interface. */

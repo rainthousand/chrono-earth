@@ -681,8 +681,11 @@ function applyPerformanceProfile(
 ) {
   container.dataset.performanceTier = profile.tier;
   container.dataset.performanceMode = performanceMode;
-  viewer.resolutionScale = getResolutionScale(profile);
-  viewer.scene.msaaSamples = profile.msaaSamples;
+  const opening = container.dataset.opening === "true";
+  viewer.resolutionScale = getResolutionScale(opening
+    ? { ...profile, targetPixelRatio: Math.min(1, profile.targetPixelRatio) }
+    : profile);
+  viewer.scene.msaaSamples = opening ? 1 : profile.msaaSamples;
   viewer.scene.globe.maximumScreenSpaceError =
     profile.maximumScreenSpaceError;
 }
@@ -1368,6 +1371,7 @@ export function GlobeScene({
   const routeParticlesRef = useRef<CesiumRouteParticleCollection | null>(null);
   const routeParticleEntriesRef = useRef<readonly RouteParticleEntry[]>([]);
   const openingBeaconRef = useRef<CesiumEntity | null>(null);
+  const upgradeImageryRef = useRef<(() => void) | null>(null);
   const markerImageRef = useRef<HTMLCanvasElement | null>(null);
   const performanceProfileRef = useRef<PerformanceProfile | null>(null);
   const placesRef = useRef(places);
@@ -1456,6 +1460,7 @@ export function GlobeScene({
     document.addEventListener("visibilitychange", watchVisibleLoad);
     let inputHandler: import("cesium").ScreenSpaceEventHandler | null = null;
     let imageryFadeFrame: number | null = null;
+    let imageryUpgradeTimer: number | undefined;
     let resizeHandler: (() => void) | null = null;
     let removeCameraMoveEndListener: (() => void) | null = null;
     let removeCameraMoveStartListener: (() => void) | null = null;
@@ -1541,6 +1546,7 @@ export function GlobeScene({
       viewer.scene.globe.dynamicAtmosphereLightingFromSun = false;
       viewer.scene.fog.enabled = false;
       viewer.scene.highDynamicRange = false;
+      container.dataset.opening = String(openingPhaseRef.current !== "done");
       applyPerformanceProfile(
         viewer,
         container,
@@ -1821,44 +1827,52 @@ export function GlobeScene({
       // Keep the bundled Natural Earth tiles as an instant/offline fallback,
       // then replace them with an adaptive NASA Blue Marble texture. Most
       // displays use 4K to reduce GPU memory; the high tier keeps 8K.
-      void Cesium.SingleTileImageryProvider.fromUrl(
-        performanceProfile.textureUrl,
-      )
-        .then((provider) => {
+      let upgradeStarted = false;
+      upgradeImageryRef.current = () => {
+        if (upgradeStarted || cancelled || viewer.isDestroyed()) return;
+        upgradeStarted = true;
+        // Leave the camera pullback clear of image decoding, GPU uploads and
+        // full-resolution buffer allocation. The tiled base stays visible.
+        imageryUpgradeTimer = window.setTimeout(() => {
           if (cancelled || viewer.isDestroyed()) return;
+          container.dataset.opening = "false";
+          applyPerformanceProfile(viewer, container, performanceProfileRef.current ?? performanceProfile, performanceMode);
+          viewer.scene.requestRender();
+          void Cesium.SingleTileImageryProvider.fromUrl(performanceProfile.textureUrl)
+            .then((provider) => {
+              if (cancelled || viewer.isDestroyed()) return;
 
-          const highResolutionLayer =
-            viewer.imageryLayers.addImageryProvider(provider);
-          highResolutionLayer.alpha = 0;
-          highResolutionLayer.brightness = 0.52;
-          highResolutionLayer.contrast = 1.12;
-          highResolutionLayer.saturation = 0.08;
-          highResolutionLayer.gamma = 1;
-          highResolutionLayer.hue = 0.08;
+              const highResolutionLayer = viewer.imageryLayers.addImageryProvider(provider);
+              highResolutionLayer.alpha = 0;
+              highResolutionLayer.brightness = 0.52;
+              highResolutionLayer.contrast = 1.12;
+              highResolutionLayer.saturation = 0.08;
+              highResolutionLayer.gamma = 1;
+              highResolutionLayer.hue = 0.08;
 
-          const fadeStartedAt = window.performance.now();
-          const fadeDuration = 900;
-          const fadeIn = (now: number) => {
-            if (cancelled || viewer.isDestroyed()) return;
+              const fadeStartedAt = window.performance.now();
+              const fadeDuration = 900;
+              const fadeIn = (now: number) => {
+                if (cancelled || viewer.isDestroyed()) return;
+                const progress = Math.min(1, (now - fadeStartedAt) / fadeDuration);
+                highResolutionLayer.alpha = progress;
+                if (naturalEarthLayer) naturalEarthLayer.alpha = 1 - progress;
+                viewer.scene.requestRender();
 
-            const progress = Math.min(1, (now - fadeStartedAt) / fadeDuration);
-            highResolutionLayer.alpha = progress;
-            if (naturalEarthLayer) naturalEarthLayer.alpha = 1 - progress;
-            viewer.scene.requestRender();
-
-            if (progress < 1) {
+                if (progress < 1) {
+                  imageryFadeFrame = window.requestAnimationFrame(fadeIn);
+                } else if (naturalEarthLayer) {
+                  viewer.imageryLayers.remove(naturalEarthLayer, true);
+                  naturalEarthLayer = false;
+                }
+              };
               imageryFadeFrame = window.requestAnimationFrame(fadeIn);
-            } else if (naturalEarthLayer) {
-              viewer.imageryLayers.remove(naturalEarthLayer, true);
-              naturalEarthLayer = false;
-            }
-          };
-
-          imageryFadeFrame = window.requestAnimationFrame(fadeIn);
-        })
-        .catch(() => {
-          // Low-memory devices and failed asset loads keep the bundled layer.
-        });
+            })
+            .catch(() => {
+              // Low-memory devices and failed asset loads keep the bundled layer.
+            });
+        }, 600);
+      };
 
       inputHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
       inputHandler.setInputAction(
@@ -1971,6 +1985,7 @@ export function GlobeScene({
         container.dataset.ready = "true";
         onLoadStateChangeRef.current?.("ready");
         window.dispatchEvent(new Event("chrono-earth:globe-ready"));
+        if (openingPhaseRef.current === "done") upgradeImageryRef.current?.();
       });
       viewer.scene.requestRender();
     }
@@ -1983,6 +1998,8 @@ export function GlobeScene({
       cancelled = true;
       if (interactionContainer) delete interactionContainer.dataset.ready;
       window.clearTimeout(loadDeadline);
+      window.clearTimeout(imageryUpgradeTimer);
+      upgradeImageryRef.current = null;
       document.removeEventListener("visibilitychange", watchVisibleLoad);
       removeReadyListener?.();
       removeErrorListener?.();
@@ -2170,6 +2187,9 @@ export function GlobeScene({
       flyToGlobal(Cesium, viewer, 2.8);
     } else if (openingPhase === "done" && openingPlaceId) {
       flyToGlobal(Cesium, viewer, 0);
+    }
+    if (openingPhase === "done" && containerRef.current?.dataset.ready === "true") {
+      upgradeImageryRef.current?.();
     }
   }, [openingPhase, openingPlaceId, places]);
 
